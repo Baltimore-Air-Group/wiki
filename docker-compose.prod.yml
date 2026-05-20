@@ -1,16 +1,16 @@
 # Production deployment for the BAG wiki (BookStack + themes/bag/).
-# Ingress is handled by an external Traefik instance — this stack
-# exposes no host ports.
+# Ingress is handled by the host's Traefik instance via the labels
+# below — this stack exposes no host ports.
 #
 # Configuration is supplied as environment variables (no .env file
 # required) — enter them in Hostinger Docker Manager's environment
 # section, or `export` them before `docker compose up`. The variables
 # consumed below are listed in .env.production.example.
 #
-# Prerequisites:
-#   - An external Docker network shared with Traefik, named "proxy":
-#       docker network create proxy
-#   - A DNS record pointing wiki.baltimoreairgroup.org at this host.
+# Networking: no explicit networks are declared. Compose creates one
+# default network for the project; Traefik discovers the app on it.
+#
+# Prerequisite: a DNS record pointing wiki.baltimoreairgroup.org here.
 
 services:
   app:
@@ -49,14 +49,8 @@ services:
     volumes:
       - storage:/app/storage          # logs, sessions, cache, attachments
       - uploads:/app/public/uploads   # uploaded images
-    networks:
-      - proxy
-      - internal
     labels:
       - traefik.enable=true
-      # Required when a container is on multiple networks — tells Traefik
-      # which one to reach the app on.
-      - traefik.docker.network=proxy
       - traefik.http.routers.bsir-wiki.rule=Host(`wiki.baltimoreairgroup.org`)
       - traefik.http.routers.bsir-wiki.entrypoints=websecure
       - traefik.http.routers.bsir-wiki.tls.certresolver=letsencrypt
@@ -72,8 +66,6 @@ services:
       MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
     volumes:
       - db:/var/lib/mysql
-    networks:
-      - internal
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
       interval: 10s
@@ -85,10 +77,3 @@ volumes:
   db:
   storage:
   uploads:
-
-networks:
-  # Shared with the Traefik container. Create once: docker network create proxy
-  proxy:
-    external: true
-  # Private app <-> db network, not reachable from Traefik.
-  internal:
