@@ -2,25 +2,47 @@
 # Ingress is handled by an external Traefik instance — this stack
 # exposes no host ports.
 #
-# Prerequisites:
-#   - An external Docker network shared with Traefik (default: "proxy").
-#       docker network create proxy
-#   - A ".env" file beside this file: cp .env.production.example .env
-#   - A DNS record pointing wiki.baltimoreairgroup.org at this host.
+# Configuration is supplied as environment variables (no .env file
+# required) — enter them in Hostinger Docker Manager's environment
+# section, or `export` them before `docker compose up`. The variables
+# consumed below are listed in .env.production.example.
 #
-# Usage:
-#   docker compose -f docker-compose.prod.yml pull
-#   docker compose -f docker-compose.prod.yml up -d
+# Prerequisites:
+#   - An external Docker network shared with Traefik, named "proxy":
+#       docker network create proxy
+#   - A DNS record pointing wiki.baltimoreairgroup.org at this host.
 
 services:
   app:
     image: ${WIKI_IMAGE:-ghcr.io/baltimore-air-group/wiki:latest}
     restart: unless-stopped
-    env_file: .env
     environment:
-      # DB_HOST is fixed to the compose service name regardless of .env.
+      # --- Application ---
+      APP_KEY: ${APP_KEY:?APP_KEY is required}
+      APP_URL: ${APP_URL:-https://wiki.baltimoreairgroup.org}
+      APP_THEME: bag
+      APP_DEBUG: ${APP_DEBUG:-false}
+      # --- Database (host/port fixed to the compose service) ---
       DB_HOST: db
       DB_PORT: "3306"
+      DB_DATABASE: ${DB_DATABASE:-bookstack}
+      DB_USERNAME: ${DB_USERNAME:-bookstack}
+      DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      # --- Mail ---
+      MAIL_DRIVER: ${MAIL_DRIVER:-log}
+      MAIL_FROM: ${MAIL_FROM:-wiki@baltimoreairgroup.org}
+      MAIL_FROM_NAME: ${MAIL_FROM_NAME:-Baltimore Air Group Wiki}
+      # --- Authentication (see themes/bag/SETUP.md) ---
+      AUTH_METHOD: ${AUTH_METHOD:-standard}
+      OIDC_NAME: ${OIDC_NAME:-Baltimore Air Group}
+      OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-}
+      OIDC_ISSUER_DISCOVER: ${OIDC_ISSUER_DISCOVER:-true}
+      OIDC_EXTERNAL_ID_CLAIM: ${OIDC_EXTERNAL_ID_CLAIM:-sub}
+      OIDC_USER_TO_GROUPS: ${OIDC_USER_TO_GROUPS:-false}
+      OIDC_GROUPS_CLAIM: ${OIDC_GROUPS_CLAIM:-groups}
+      OIDC_REMOVE_FROM_GROUPS: ${OIDC_REMOVE_FROM_GROUPS:-false}
     depends_on:
       db:
         condition: service_healthy
@@ -44,10 +66,10 @@ services:
     image: mysql:8.4
     restart: unless-stopped
     environment:
-      MYSQL_DATABASE: ${DB_DATABASE}
-      MYSQL_USER: ${DB_USERNAME}
-      MYSQL_PASSWORD: ${DB_PASSWORD}
-      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_DATABASE:-bookstack}
+      MYSQL_USER: ${DB_USERNAME:-bookstack}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD is required}
     volumes:
       - db:/var/lib/mysql
     networks:
