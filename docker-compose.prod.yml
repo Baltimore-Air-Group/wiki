@@ -1,0 +1,72 @@
+# Production deployment for the BAG wiki (BookStack + themes/bag/).
+# Ingress is handled by an external Traefik instance — this stack
+# exposes no host ports.
+#
+# Prerequisites:
+#   - An external Docker network shared with Traefik (default: "proxy").
+#       docker network create proxy
+#   - A ".env" file beside this file: cp .env.production.example .env
+#   - A DNS record pointing wiki.baltimoreairgroup.org at this host.
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml pull
+#   docker compose -f docker-compose.prod.yml up -d
+
+services:
+  app:
+    image: ${WIKI_IMAGE:-ghcr.io/baltimore-air-group/wiki:latest}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # DB_HOST is fixed to the compose service name regardless of .env.
+      DB_HOST: db
+      DB_PORT: "3306"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - storage:/app/storage          # logs, sessions, cache, attachments
+      - uploads:/app/public/uploads   # uploaded images
+    networks:
+      - proxy
+      - internal
+    labels:
+      - traefik.enable=true
+      # Required when a container is on multiple networks — tells Traefik
+      # which one to reach the app on.
+      - traefik.docker.network=proxy
+      - traefik.http.routers.bsir-wiki.rule=Host(`wiki.baltimoreairgroup.org`)
+      - traefik.http.routers.bsir-wiki.entrypoints=websecure
+      - traefik.http.routers.bsir-wiki.tls.certresolver=letsencrypt
+      - traefik.http.services.bsir-wiki.loadbalancer.server.port=80
+
+  db:
+    image: mysql:8.4
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE}
+      MYSQL_USER: ${DB_USERNAME}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+    volumes:
+      - db:/var/lib/mysql
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
+
+volumes:
+  db:
+  storage:
+  uploads:
+
+networks:
+  # Shared with the Traefik container. Create once: docker network create proxy
+  proxy:
+    external: true
+  # Private app <-> db network, not reachable from Traefik.
+  internal:

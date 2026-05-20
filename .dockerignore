@@ -1,0 +1,15 @@
+.git
+.github
+.gitattributes
+.gitignore
+.env*
+node_modules
+vendor
+public/dist
+docker-compose*.yml
+dev/docker
+dev/docs
+tests
+storage/logs/*.log
+*.tar
+*.zip
