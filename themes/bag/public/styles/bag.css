@@ -1,0 +1,173 @@
+/* ==============================================================
+   Baltimore Air Group — BookStack theme styles
+   --------------------------------------------------------------
+   Ported from docs/bookstack-theme.md (sections 4, 5 and 6).
+
+   NOTE: this is plain CSS, not SCSS. BookStack does NOT compile
+   theme stylesheets — the theme guide's "asset pipeline" claim
+   does not hold for real BookStack. This file is served as a
+   static asset from /theme/bag/styles/bag.css and linked from the
+   custom-head override. Edit it directly; there is no build step.
+   ============================================================== */
+
+/* ---- 4. Design tokens ---------------------------------------
+   Mirrors the selectors used by BookStack's own
+   resources/views/layouts/parts/custom-styles.blade.php so the
+   cascade order (this file loads later) lets BAG values win on
+   equal specificity.
+   --------------------------------------------------------------*/
+:root {
+  /* Tokens BookStack itself consumes */
+  --color-primary: #ce1126;        /* Maryland red */
+  --color-primary-light: #fbe5e8;
+  --color-link: #ce1126;
+
+  /* BAG palette — consumed by this theme's own components below */
+  --bag-primary-dark: #a30e1f;
+  --bag-secondary: #ffcd00;        /* Maryland gold (accents) */
+  --bag-secondary-light: #fff8d6;
+  --bag-positive: #2f7d3d;
+  --bag-negative: #b91c1c;
+  --bag-warning: #b45309;
+  --bag-info: #2563eb;
+  --bag-border: #e4e4ea;
+  --bag-card-bg: #fafafb;
+  --bag-code-bg: #1c1c20;
+  --bag-code-fg: #f4f4f5;
+  --bag-radius: 0.625rem;
+  --bag-radius-sm: 0.375rem;
+  --bag-font-body: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --bag-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+:root.dark-mode {
+  /* Softened red for dark mode — pure brand red on near-black
+     fatigues the eye. Same trick the core frontend uses. */
+  --color-primary: #f04254;
+  --color-primary-light: #2a0d11;
+  --color-link: #f04254;
+
+  --bag-border: #34343c;
+  --bag-card-bg: #1f1f24;
+}
+
+/* ---- Typography ---------------------------------------------
+   Inter is loaded from the same CDN as the core app via the
+   custom-head override (https://rsms.me/inter/inter.css).
+   --------------------------------------------------------------*/
+body,
+button,
+input,
+select,
+textarea {
+  font-family: var(--bag-font-body);
+}
+
+.page-content code,
+.page-content pre,
+code,
+kbd,
+pre {
+  font-family: var(--bag-font-mono);
+}
+
+/* ---- 5.1 Header strip ---------------------------------------
+   BookStack's header is a CSS grid; structural changes risk
+   breakage, so this only restyles the added "Back to BAG" link.
+   --------------------------------------------------------------*/
+.bag-back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+  border-radius: var(--bag-radius-sm);
+}
+
+.bag-back-link svg {
+  width: 1em;
+  height: 1em;
+  fill: currentColor;
+}
+
+.bag-back-link:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--bag-secondary);
+  text-underline-offset: 3px;
+}
+
+/* ---- 5.2 Callouts inside page content -----------------------
+   Matches the core app's Card aesthetic. Selectors are scoped
+   under .page-content to out-specify BookStack's own .callout.
+   --------------------------------------------------------------*/
+.page-content .callout {
+  border-left: 3px solid var(--bag-border);
+  padding: 0.75rem 1rem;
+  border-radius: var(--bag-radius-sm);
+  background: var(--bag-card-bg);
+}
+
+.page-content .callout.info    { border-color: var(--bag-info);     background: #eff6ff; }
+.page-content .callout.success { border-color: var(--bag-positive); background: #ecfdf5; }
+.page-content .callout.warning { border-color: var(--bag-warning);  background: #fffbeb; }
+.page-content .callout.danger  { border-color: var(--bag-negative); background: #fef2f2; }
+
+:root.dark-mode .page-content .callout         { background: var(--bag-card-bg); }
+:root.dark-mode .page-content .callout.info    { background: #0c1d33; }
+:root.dark-mode .page-content .callout.success { background: #0c241a; }
+:root.dark-mode .page-content .callout.warning { background: #2a1e08; }
+:root.dark-mode .page-content .callout.danger  { background: #2a0f0f; }
+
+/* ---- 5.3 Code blocks ----------------------------------------
+   Near-black code background so blocks don't fight Card
+   containers. Editor CodeMirror theming is intentionally left to
+   BookStack defaults — BookStack 26.x ships CodeMirror 6, which
+   has no ".cm-s-bookstack" class to override (that was CM5).
+   --------------------------------------------------------------*/
+.page-content pre {
+  background: var(--bag-code-bg);
+  color: var(--bag-code-fg);
+  border-radius: var(--bag-radius-sm);
+}
+
+.page-content pre code {
+  font-size: 0.875rem;
+  color: inherit;
+  background: transparent;
+}
+
+/* ---- 6. Staff-only gating -----------------------------------
+   Elements tagged data-staff-only="<bag-permission-key>" stay
+   hidden until bag.js confirms the current user holds that
+   permission (it then sets data-staff-granted). !important keeps
+   them hidden by default so a slow/failed API call fails closed
+   and never flashes staff-only UI to unauthorized users.
+   --------------------------------------------------------------*/
+[data-staff-only]:not([data-staff-granted]) {
+  display: none !important;
+}
+
+/* ---- Footer -------------------------------------------------*/
+.bag-footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--bag-border);
+  text-align: center;
+  font-size: 0.8125rem;
+}
+
+.bag-footer__inner {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  align-items: center;
+  justify-content: center;
+}
+
+.bag-footer__brand {
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.bag-footer__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
