@@ -62,7 +62,7 @@ OIDC_USER_TO_GROUPS=true
 OIDC_GROUPS_CLAIM=groups
 OIDC_REMOVE_FROM_GROUPS=true
 
-# Only if BAG requires an explicit scope to return the groups claim:
+# Required: BAG only returns the groups claim when this scope is requested.
 OIDC_ADDITIONAL_SCOPES=groups
 ```
 
